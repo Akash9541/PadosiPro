@@ -1,15 +1,19 @@
+
 FROM node:20-alpine
 
 WORKDIR /app
 
+RUN apk add --no-cache python3 make g++
+
 COPY package*.json ./
+
 RUN npm install
 
 COPY . .
 
-RUN npx prisma generate && npm run build
+RUN npm rebuild bcrypt --build-from-source
 
-ENV NODE_ENV=production
+RUN npx prisma generate && npm run build
 
 EXPOSE 5000
 

@@ -1,15 +1,16 @@
 import nodemailer from 'nodemailer';
 import { config } from '../config';
 
+const isMailpit = config.smtp.host === 'mailpit' || config.smtp.port === 1025;
+
 const transporter = nodemailer.createTransport({
   host: config.smtp.host,
   port: config.smtp.port,
   secure: false,
-  requireTLS: true,
-  auth: {
-    user: config.smtp.user,
-    pass: config.smtp.password,
-  },
+  requireTLS: !isMailpit,
+  ...(config.smtp.user && config.smtp.password
+    ? { auth: { user: config.smtp.user, pass: config.smtp.password } }
+    : {}),
 });
 
 export async function sendOTPEmail(email: string, otp: string): Promise<void> {
