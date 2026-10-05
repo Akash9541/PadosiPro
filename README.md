@@ -25,7 +25,7 @@ The user journey is:
 - Multi-select task saving
 - Home screen showing selected services
 - Secure password hashing and hashed OTP storage
-- Mailpit-based local email testing
+- Ethereal SMTP-based OTP email delivery
 - Backend tests for OTP and login rules
 
 ## Tech Stack
@@ -54,7 +54,7 @@ The user journey is:
 ### Infrastructure
 - Docker Compose
 - PostgreSQL
-- Mailpit
+- Ethereal SMTP
 
 ### Testing
 - Vitest
@@ -72,8 +72,8 @@ Prisma
 PostgreSQL
 
 Express
-      ↓
-Mailpit (local SMTP)
+      ↓ HTTPS API
+Ethereal SMTP
 ```
 
 ## Prerequisites
@@ -129,14 +129,17 @@ Example contents:
 DATABASE_URL=postgresql://postgres:postgres@localhost:5433/padosipro
 JWT_SECRET=replace-this-with-a-random-string
 JWT_EXPIRES_IN=7d
-RESEND_API_KEY=
-RESEND_FROM_EMAIL=PadosiPro <onboarding@resend.dev>
+SMTP_HOST=smtp.ethereal.email
+SMTP_PORT=587
+SMTP_USER=your-ethereal-username
+SMTP_PASSWORD=your-ethereal-password
 PORT=5000
 ```
 
-Leave `RESEND_API_KEY` empty for local development to send OTP emails to
-Mailpit. Production requires a Resend API key and a sender address on a domain
-verified in Resend.
+Replace the SMTP username and password placeholders with credentials generated
+by Ethereal. Use the same values for local `apps/backend/.env` and the hosting
+provider's environment. Port `587` uses STARTTLS. Ethereal captures test email
+for preview and does not deliver messages to the recipient's regular inbox.
 
 ## Backend Setup
 
@@ -146,50 +149,28 @@ From the project root, start the complete local stack with:
 docker compose up -d --build
 ```
 
-Compose starts PostgreSQL, Mailpit, and the API. The backend container applies
+Compose starts PostgreSQL and the API. The backend container applies
 Prisma migrations and seeds the task catalogue before starting the API, so do
 not also run `npm run dev` on the host while the container is running.
 
 - API: `http://localhost:5000`
 - PostgreSQL: `localhost:5433`
-- Mailpit inbox: `http://localhost:8025`
-
 To stop the services:
 
 ```bash
 docker compose down
 ```
 
-For local host-based backend development instead, start only the dependencies
-with `docker compose up -d postgres mailpit`, create `apps/backend/.env` from
-the root `.env.example`, then run the backend migration, seed, and `npm run dev`
-commands from `apps/backend`.
+For local host-based backend development instead, start PostgreSQL with
+`docker compose up -d postgres`, create `apps/backend/.env` from the root
+`.env.example`, then run the backend migration, seed, and `npm run dev` commands
+from `apps/backend`.
 
 The backend API is available at:
 
 ```text
 http://localhost:5000
 ```
-
-## Mailpit Setup
-
-Mailpit is used for local OTP emails.
-
-### Open Mailpit inbox
-
-Open this in your browser:
-
-```text
-http://localhost:8025
-```
-
-### How to receive the OTP
-
-1. Register a new user from the mobile app
-2. Open Mailpit in the browser
-3. Find the PadosiPro verification email
-4. Copy the 6-digit OTP
-5. Enter it on the verification screen
 
 ## Mobile App Setup
 
@@ -270,10 +251,9 @@ exports JavaScript bundles; it does not produce an installable APK.
 1. Push this repository to a GitHub repository you control.
 2. In Render, create a Blueprint from that repository and review the service
       and database plans and costs before confirming.
-3. Create a Resend account, verify a sending domain, and add `RESEND_API_KEY`
-      and `RESEND_FROM_EMAIL` to the API service's environment. The default
-      `onboarding@resend.dev` sender is for testing only; use your verified domain
-      for production. Do not use Mailpit for a public deployment.
+3. Create an Ethereal test account and set `SMTP_USER` and `SMTP_PASSWORD` in
+      the API service environment. Set `SMTP_HOST=smtp.ethereal.email` and
+      `SMTP_PORT=587` for STARTTLS.
 4. Wait for the API health check at `/api/health` to return `{"status":"ok"}`.
 5. Set the public API URL in the EAS `production` environment, then rebuild:
 
@@ -285,7 +265,7 @@ exports JavaScript bundles; it does not produce an installable APK.
 
       Replace the example URL with the API service URL shown in Render.
 
-Only the API should be public. Keep the database, Resend API key, and EAS
+Only the API should be public. Keep the database, SMTP credentials, and EAS
 secrets private. The database migrations and non-destructive catalogue seed run
 when the backend starts; the seed does not delete users or task selections.
 The Blueprint uses free demo plans; review Render's current limits and any
@@ -342,19 +322,11 @@ kill -9 <PID>
 
 If the app says the current Expo Go is for another SDK version, install a version compatible with Expo SDK 52.
 
-### Mailpit not receiving emails
+### OTP email not arriving
 
-Check that the mailpit container is running:
-
-```bash
-docker compose ps
-```
-
-Then open:
-
-```text
-http://localhost:8025
-```
+Check the backend logs and confirm `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, and
+`SMTP_PASSWORD` are set correctly. Ethereal captures test messages for preview;
+it does not send them to the recipient's regular inbox.
 
 ## Final Notes
 
@@ -364,6 +336,6 @@ This project is intentionally simple and beginner-friendly while still implement
 - hashed OTP storage
 - OTP expiry and attempt limits
 - validation with Zod
-- local OTP capture with Mailpit and production delivery through Resend
+- OTP email delivery through Ethereal SMTP using STARTTLS
 
 This repo is meant to be understandable and runnable without unnecessary enterprise complexity.

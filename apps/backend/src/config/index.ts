@@ -9,38 +9,33 @@ if (!jwtSecret) {
   throw new Error('JWT_SECRET must be set in production.');
 }
 
-const resendApiKey = process.env.RESEND_API_KEY || '';
+const smtp = {
+  host: process.env.SMTP_HOST || '',
+  port: Number.parseInt(process.env.SMTP_PORT || '587', 10),
+  user: process.env.SMTP_USER || '',
+  password: process.env.SMTP_PASSWORD || '',
+};
 
-if (isProduction && !resendApiKey) {
-  throw new Error('RESEND_API_KEY must be set in production.');
+if (isProduction && (!smtp.host || !process.env.SMTP_PORT || !smtp.user || !smtp.password)) {
+  throw new Error('SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASSWORD must be set in production.');
 }
 
-if (isProduction && process.env.RESEND_FROM_EMAIL?.includes('onboarding@resend.dev')) {
-  throw new Error('Set RESEND_FROM_EMAIL to an address on your verified sending domain in production.');
+if (!Number.isInteger(smtp.port) || smtp.port < 1 || smtp.port > 65535) {
+  throw new Error('SMTP_PORT must be a valid port number.');
+}
+
+if (isProduction && smtp.port !== 587) {
+  throw new Error('SMTP_PORT must be 587 in production to use STARTTLS.');
 }
 
 export const config: {
   port: number;
   jwtSecret: string;
   jwtExpiresIn: string | number;
-  resendApiKey: string;
-  resendFromEmail: string;
-  smtp: {
-    host: string;
-    port: number;
-    user: string;
-    password: string;
-  };
+  smtp: typeof smtp;
 } = {
   port: parseInt(process.env.PORT || '5000', 10),
   jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  resendApiKey,
-  resendFromEmail: process.env.RESEND_FROM_EMAIL || 'PadosiPro <onboarding@resend.dev>',
-  smtp: {
-    host: process.env.SMTP_HOST || 'localhost',
-    port: parseInt(process.env.SMTP_PORT || '1025', 10),
-    user: process.env.SMTP_USER || '',
-    password: process.env.SMTP_PASSWORD || '',
-  },
+  smtp,
 };

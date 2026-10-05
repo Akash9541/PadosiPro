@@ -1,15 +1,15 @@
-import { Resend } from 'resend';
 import nodemailer from 'nodemailer';
 import { config } from '../config';
-
-const resend = config.resendApiKey ? new Resend(config.resendApiKey) : null;
 
 const transporter = nodemailer.createTransport({
   host: config.smtp.host,
   port: config.smtp.port,
-  auth: config.smtp.user
-    ? { user: config.smtp.user, pass: config.smtp.password }
-    : undefined,
+  secure: false,
+  requireTLS: true,
+  auth: {
+    user: config.smtp.user,
+    pass: config.smtp.password,
+  },
 });
 
 export async function sendOTPEmail(email: string, otp: string): Promise<void> {
@@ -23,26 +23,15 @@ export async function sendOTPEmail(email: string, otp: string): Promise<void> {
       </div>
     `;
 
-  if (resend) {
-    const { error } = await resend.emails.send({
-      from: config.resendFromEmail,
-      to: [email],
+  try {
+    await transporter.sendMail({
+      from: `PadosiPro <${config.smtp.user}>`,
+      to: email,
       subject: 'Your PadosiPro Verification Code',
       html,
     });
-
-    if (error) {
-      console.error('Resend email error:', error);
-      throw new Error(error.message);
-    }
-
-    return;
+  } catch (error) {
+    console.error('SMTP OTP email error:', error);
+    throw error;
   }
-
-  await transporter.sendMail({
-    from: '"PadosiPro" <noreply@padosipro.com>',
-    to: email,
-    subject: 'Your PadosiPro Verification Code',
-    html,
-  });
 }
