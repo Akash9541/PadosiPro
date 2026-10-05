@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+
+.env
+.env.*
+!.env.example
+
+.expo/
+android/
+ios/
+
+*.apk
+*.ipa
+*.tsbuildinfo
+
+coverage/
