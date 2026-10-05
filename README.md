@@ -129,12 +129,14 @@ Example contents:
 DATABASE_URL=postgresql://postgres:postgres@localhost:5433/padosipro
 JWT_SECRET=replace-this-with-a-random-string
 JWT_EXPIRES_IN=7d
-SMTP_HOST=localhost
-SMTP_PORT=1025
-SMTP_USER=
-SMTP_PASSWORD=
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=PadosiPro <onboarding@resend.dev>
 PORT=5000
 ```
+
+Leave `RESEND_API_KEY` empty for local development to send OTP emails to
+Mailpit. Production requires a Resend API key and a sender address on a domain
+verified in Resend.
 
 ## Backend Setup
 
@@ -185,7 +187,7 @@ http://localhost:8025
 
 1. Register a new user from the mobile app
 2. Open Mailpit in the browser
-3. Find the email from `noreply@padosipro.com`
+3. Find the PadosiPro verification email
 4. Copy the 6-digit OTP
 5. Enter it on the verification screen
 
@@ -268,8 +270,10 @@ exports JavaScript bundles; it does not produce an installable APK.
 1. Push this repository to a GitHub repository you control.
 2. In Render, create a Blueprint from that repository and review the service
       and database plans and costs before confirming.
-3. Add the SMTP host, username, and password for an email provider to the API
-      service's environment. Do not use Mailpit for a public deployment.
+3. Create a Resend account, verify a sending domain, and add `RESEND_API_KEY`
+      and `RESEND_FROM_EMAIL` to the API service's environment. The default
+      `onboarding@resend.dev` sender is for testing only; use your verified domain
+      for production. Do not use Mailpit for a public deployment.
 4. Wait for the API health check at `/api/health` to return `{"status":"ok"}`.
 5. Set the public API URL in the EAS `production` environment, then rebuild:
 
@@ -281,7 +285,7 @@ exports JavaScript bundles; it does not produce an installable APK.
 
       Replace the example URL with the API service URL shown in Render.
 
-Only the API should be public. Keep the database, SMTP credentials, and EAS
+Only the API should be public. Keep the database, Resend API key, and EAS
 secrets private. The database migrations and non-destructive catalogue seed run
 when the backend starts; the seed does not delete users or task selections.
 The Blueprint uses free demo plans; review Render's current limits and any
@@ -360,6 +364,6 @@ This project is intentionally simple and beginner-friendly while still implement
 - hashed OTP storage
 - OTP expiry and attempt limits
 - validation with Zod
-- local SMTP with Mailpit
+- local OTP capture with Mailpit and production delivery through Resend
 
 This repo is meant to be understandable and runnable without unnecessary enterprise complexity.
